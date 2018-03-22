@@ -1123,8 +1123,9 @@ namespace Sass {
                        word<global_kwd> >(src);
     }
     // Match CSS pseudo-class/element prefixes.
+	// Also Match QSS pseudo-states with !<state> syntax
     const char* pseudo_prefix(const char* src) {
-      return sequence< exactly<':'>, optional< exactly<':'> > >(src);
+      return sequence< exactly<':'>, optional< exactly<'!'> >, optional< exactly<':'> > >(src);
     }
     // Match CSS function call openers.
     const char* functional_schema(const char* src) {
