@@ -1,6 +1,7 @@
 LibSass - Sass compiler written in C++
 ======================================
 
+Support for Qt Stylesheets (QSS) added as small fix by Andrii Slisarchuk ([@guitarheroua])
 Currently maintained by Marcel Greter ([@mgreter]) and Michael Mifsud ([@xzyfer])  
 Originally created by Aaron Leung ([@akhleung]) and Hampton Catlin ([@hcatlin])
 
@@ -19,6 +20,7 @@ implementations are only bindings into other programming languages. But most als
 ship with a command line interface (CLI) you can use directly. There is also
 [SassC](https://github.com/sass/sassc), which is the official lightweight
 CLI tool built by the same people as LibSass.
+To check Qt Stylesheets support, you can use [qss](https://github.com/ColinDuquesnoy/QDarkStyleSheet/blob/master/qdarkstyle/style.qss) file from [QDarkStylesheet](https://github.com/ColinDuquesnoy/QDarkStyleSheet).
 
 ### Excerpt of "sanctioned" implementations:
 
@@ -102,3 +104,4 @@ Our [MIT license](LICENSE) is designed to be as simple and liberal as possible.
 [@nex3]: https://github.com/nex3
 [@mgreter]: https://github.com/mgreter
 [@xzyfer]: https://github.com/xzyfer
+[@guitarheroua]: https://github.com/Guitarheroua
