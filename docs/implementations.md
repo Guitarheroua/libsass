@@ -14,19 +14,9 @@ There are several implementations of `libsass` for a variety of languages. Here 
 * [go_sass](https://github.com/suapapa/go_sass)
 * [go-sass](https://github.com/SamWhited/go-sass)
 
-### Lua
-* [lua-sass](https://github.com/craigbarnes/lua-sass)
-
-### .NET
-* [libsass-net](https://github.com/darrenkopp/libsass-net)
-* [NSass](https://github.com/TBAPI-0KA/NSass)
-* [Sass.Net](https://github.com/andyalm/Sass.Net)
-
-### Nim
-* [nim-sass](https://github.com/zacharycarter/nim-sass)
-
-### node.js
-* [node-sass](https://github.com/andrew/node-sass)
+### Haskell
+* [hLibsass](https://github.com/jakubfijalkowski/hlibsass)
+* [hSass](https://github.com/jakubfijalkowski/hsass)
 
 ### Java
 * [libsass-maven-plugin](https://github.com/warmuuh/libsass-maven-plugin)
@@ -34,6 +24,24 @@ There are several implementations of `libsass` for a variety of languages. Here 
 
 ### JavaScript
 * [sass.js](https://github.com/medialize/sass.js)
+
+### Lua
+* [lua-sass](https://github.com/craigbarnes/lua-sass)
+
+### .NET
+* [libsass-net](https://github.com/darrenkopp/libsass-net)
+* [NSass](https://github.com/TBAPI-0KA/NSass)
+* [Sass.Net](https://github.com/andyalm/Sass.Net)
+* [SharpScss](https://github.com/xoofx/SharpScss)
+* [LibSassHost](https://github.com/Taritsyn/LibSassHost)
+
+### Nim
+
+* [sass](https://github.com/dom96/sass)
+* [nim-sass](https://github.com/zacharycarter/nim-sass)
+
+### node.js
+* [node-sass](https://github.com/sass/node-sass)
 
 ### Perl
 * [CSS::Sass](https://github.com/caldwell/CSS-Sass)

@@ -671,9 +671,6 @@ namespace Sass {
     if (name != "") {
       ss << name;
     }
-    else if (r == 0 && g == 0 && b == 0 && a == 0) {
-      ss << "transparent";
-    }
     else if (a >= 1) {
       if (res_name != "") {
         if (compressed && hexlet.str().size() < res_name.size()) {
@@ -1045,7 +1042,7 @@ namespace Sass {
       case Complex_Selector::REFERENCE:
         append_mandatory_space();
         append_string("/");
-        c->reference()->perform(this);
+        if (c->reference()) c->reference()->perform(this);
         append_string("/");
         append_mandatory_space();
       break;
