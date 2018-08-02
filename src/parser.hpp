@@ -276,6 +276,7 @@ namespace Sass {
     Expression_Obj parse_list(bool delayed = false);
     Expression_Obj parse_comma_list(bool delayed = false);
     Expression_Obj parse_space_list();
+	Expression_Obj parse_space_list_with_named_arg();
     Expression_Obj parse_disjunction();
     Expression_Obj parse_conjunction();
     Expression_Obj parse_relation();

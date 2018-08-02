@@ -478,7 +478,9 @@ namespace Sass {
     else {
       bool is_arglist = false;
       bool is_keyword = false;
-      Expression_Obj val = parse_space_list();
+      bool has_named_argument = peek_css <sequence<identifier, exactly<':'>>>();
+
+      Expression_Obj val = has_named_argument ? parse_space_list_with_named_arg() : parse_space_list();
       List_Ptr l = Cast<List>(val);
       if (lex_css< exactly< ellipsis > >()) {
         if (val->concrete_type() == Expression::MAP || (
@@ -1264,6 +1266,26 @@ namespace Sass {
     return space_list;
   }
   // EO parse_space_list
+
+  Expression_Obj Parser::parse_space_list_with_named_arg()
+  {
+    NESTING_GUARD(nestings);
+	lex_css<sequence<identifier, exactly<':'>>>();
+	Expression_Obj namedArg = SASS_MEMORY_NEW(String_Constant, pstate, lexed);
+
+    List_Obj space_list = SASS_MEMORY_NEW(List, pstate, 1, SASS_SPACE);
+    space_list->append(namedArg);
+
+    while (
+      !(peek_css< space_list_terminator >(position)) &&
+      peek_css< optional_css_whitespace >() != end
+    ) {
+      // the space is parsed implicitly?
+      space_list->append(parse_disjunction());
+    }
+    // return the list
+    return space_list;
+  }
 
   // parse logical OR operation
   Expression_Obj Parser::parse_disjunction()
