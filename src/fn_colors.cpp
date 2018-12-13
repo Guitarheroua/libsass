@@ -3,20 +3,17 @@
 #include "ast.hpp"
 #include "fn_utils.hpp"
 #include "fn_colors.hpp"
+#include "util.hpp"
 
 namespace Sass {
 
   namespace Functions {
 
     bool special_number(String_Constant_Ptr s) {
-      if (s) {
-        std::string calc("calc(");
-        std::string var("var(");
-        std::string ss(s->value());
-        return std::equal(calc.begin(), calc.end(), ss.begin()) ||
-               std::equal(var.begin(), var.end(), ss.begin());
-      }
-      return false;
+      if (s == nullptr) return false;
+      const std::string& str = s->value();
+      return starts_with(str, "calc(") ||
+             starts_with(str, "var(");
     }
 
     Signature rgb_sig = "rgb($red, $green, $blue)";
@@ -102,10 +99,10 @@ namespace Sass {
         return SASS_MEMORY_NEW(String_Constant, pstate, strm.str());
       }
 
-      Color_Ptr new_c = SASS_MEMORY_COPY(c_arg);
+      Color_Obj new_c = SASS_MEMORY_COPY(c_arg);
       new_c->a(ALPHA_NUM("$alpha"));
       new_c->disp("");
-      return new_c;
+      return new_c.detach();
     }
 
     ////////////////

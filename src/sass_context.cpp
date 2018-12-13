@@ -67,23 +67,23 @@ namespace Sass {
       }
 
       // now create the code trace (ToDo: maybe have util functions?)
-      if (e.pstate.line != std::string::npos && e.pstate.column != std::string::npos) {
+      if (e.pstate.line != std::string::npos &&
+          e.pstate.column != std::string::npos &&
+          e.pstate.src != nullptr) {
         size_t lines = e.pstate.line;
-        const char* line_beg = e.pstate.src;
         // scan through src until target line
         // move line_beg pointer to line start
-        while (line_beg && *line_beg && lines != 0) {
+        const char* line_beg;
+        for (line_beg = e.pstate.src; *line_beg != '\0'; ++line_beg) {
+          if (lines == 0) break;
           if (*line_beg == '\n') --lines;
-          utf8::unchecked::next(line_beg); 
         }
-        const char* line_end = line_beg;
         // move line_end before next newline character
-        while (line_end && *line_end && *line_end != '\n') {
-          if (*line_end == '\n') break;
-          if (*line_end == '\r') break;
-          utf8::unchecked::next(line_end); 
+        const char* line_end;
+        for (line_end = line_beg; *line_end != '\0'; ++line_end) {
+          if (*line_end == '\n' || *line_end == '\r') break;
         }
-        if (line_end && *line_end != 0) ++ line_end;
+        if (*line_end != '\0') ++line_end;
         size_t line_len = line_end - line_beg;
         size_t move_in = 0; size_t shorten = 0;
         size_t left_chars = 42; size_t max_chars = 76;
@@ -212,7 +212,7 @@ namespace Sass {
   {
 
     // assert valid pointer
-    if (compiler == 0) return 0;
+    if (compiler == 0) return {};
     // The cpp context must be set by now
     Context* cpp_ctx = compiler->cpp_ctx;
     Sass_Context* c_ctx = compiler->c_ctx;
@@ -233,7 +233,7 @@ namespace Sass {
       // dispatch parse call
       Block_Obj root(cpp_ctx->parse());
       // abort on errors
-      if (!root) return 0;
+      if (!root) return {};
 
       // skip all prefixed files? (ToDo: check srcmap)
       // IMO source-maps should point to headers already
@@ -253,7 +253,7 @@ namespace Sass {
     catch (...) { handle_errors(c_ctx); }
 
     // error
-    return 0;
+    return {};
 
   }
 
@@ -381,7 +381,7 @@ extern "C" {
 
   inline void init_options (struct Sass_Options* options)
   {
-    options->precision = 5;
+    options->precision = 10;
     options->indent = "  ";
     options->linefeed = LFEED;
   }
@@ -617,7 +617,7 @@ extern "C" {
     if (cpp_ctx) delete(cpp_ctx);
     compiler->cpp_ctx = NULL;
     compiler->c_ctx = NULL;
-    compiler->root = NULL;
+    compiler->root = {};
     free(compiler);
   }
 

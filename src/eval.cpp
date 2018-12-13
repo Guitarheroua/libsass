@@ -52,7 +52,7 @@ namespace Sass {
   {
     return ctx.cwd();
   }
-  
+
   struct Sass_Inspect_Options& Eval::options()
   {
     return ctx.c_options;
@@ -163,7 +163,7 @@ namespace Sass {
 
   Expression_Ptr Eval::operator()(If_Ptr i)
   {
-    Expression_Obj rv = 0;
+    Expression_Obj rv;
     Env env(environment());
     env_stack().push_back(&env);
     Expression_Obj cond = i->predicate()->perform(this);
@@ -242,8 +242,8 @@ namespace Sass {
     Expression_Obj expr = e->list()->perform(this);
     Env env(environment(), true);
     env_stack().push_back(&env);
-    List_Obj list = 0;
-    Map_Ptr map = 0;
+    List_Obj list;
+    Map_Ptr map = nullptr;
     if (expr->concrete_type() == Expression::MAP) {
       map = Cast<Map>(expr);
     }
@@ -261,7 +261,7 @@ namespace Sass {
     }
 
     Block_Obj body = e->block();
-    Expression_Obj val = 0;
+    Expression_Obj val;
 
     if (map) {
       for (Expression_Obj key : map->keys()) {
@@ -745,8 +745,8 @@ namespace Sass {
     AST_Node_Obj lu = lhs;
     AST_Node_Obj ru = rhs;
 
-    Expression::Concrete_Type l_type;
-    Expression::Concrete_Type r_type;
+    Expression::Type l_type;
+    Expression::Type r_type;
 
     // Is one of the operands an interpolant?
     String_Schema_Obj s1 = Cast<String_Schema>(b->left());
@@ -960,8 +960,8 @@ namespace Sass {
     }
 
     if (Cast<String_Schema>(c->sname())) {
-      Expression_Ptr evaluated_name = c->sname()->perform(this);
-      Expression_Ptr evaluated_args = c->arguments()->perform(this);
+      Expression_Obj evaluated_name = c->sname()->perform(this);
+      Expression_Obj evaluated_args = c->arguments()->perform(this);
       std::string str(evaluated_name->to_string());
       str += evaluated_args->to_string();
       return SASS_MEMORY_NEW(String_Constant, c->pstate(), str);
@@ -1103,9 +1103,15 @@ namespace Sass {
       }
       union Sass_Value* c_val = c_func(c_args, c_function, compiler());
       if (sass_value_get_tag(c_val) == SASS_ERROR) {
-        error("error in C function " + c->name() + ": " + sass_error_get_message(c_val), c->pstate(), traces);
+        std::string message("error in C function " + c->name() + ": " + sass_error_get_message(c_val));
+        sass_delete_value(c_val);
+        sass_delete_value(c_args);
+        error(message, c->pstate(), traces);
       } else if (sass_value_get_tag(c_val) == SASS_WARNING) {
-        error("warning in C function " + c->name() + ": " + sass_warning_get_message(c_val), c->pstate(), traces);
+        std::string message("warning in C function " + c->name() + ": " + sass_warning_get_message(c_val));
+        sass_delete_value(c_val);
+        sass_delete_value(c_args);
+        error(message, c->pstate(), traces);
       }
       result = c2ast(c_val, traces, c->pstate());
 
@@ -1129,7 +1135,7 @@ namespace Sass {
 
   Expression_Ptr Eval::operator()(Variable_Ptr v)
   {
-    Expression_Obj value = 0;
+    Expression_Obj value;
     Env* env = environment();
     const std::string& name(v->name());
     EnvResult rv(env->find(name));
@@ -1529,11 +1535,11 @@ namespace Sass {
   Selector_List_Ptr Eval::operator()(Complex_Selector_Ptr s)
   {
     bool implicit_parent = !exp.old_at_root_without_rule;
-    if (is_in_selector_schema) exp.selector_stack.push_back(0);
+    if (is_in_selector_schema) exp.selector_stack.push_back({});
     Selector_List_Obj resolved = s->resolve_parent_refs(exp.selector_stack, traces, implicit_parent);
     if (is_in_selector_schema) exp.selector_stack.pop_back();
     for (size_t i = 0; i < resolved->length(); i++) {
-      Complex_Selector_Ptr is = resolved->at(i)->first();
+      Complex_Selector_Ptr is = resolved->at(i)->mutable_first();
       while (is) {
         if (is->head()) {
           is->head(operator()(is->head()));
@@ -1636,15 +1642,14 @@ namespace Sass {
         if (s->selector()->find(hasNotSelector)) {
           s->selector()->clear();
           s->name(" ");
-        } else if (s->selector()->length() == 1) {
-          Complex_Selector_Ptr cs = s->selector()->at(0);
-          if (cs->tail()) {
-            s->selector()->clear();
-            s->name(" ");
+        } else {
+          for (size_t i = 0; i < s->selector()->length(); ++i) {
+            Complex_Selector_Ptr cs = s->selector()->at(i);
+            if (cs->tail()) {
+              s->selector()->clear();
+              s->name(" ");
+            }
           }
-        } else if (s->selector()->length() > 1) {
-          s->selector()->clear();
-          s->name(" ");
         }
       }
     }

@@ -18,6 +18,15 @@ namespace Sass {
     extern const unsigned long Specificity_Pseudo = 1000;
     extern const unsigned long Specificity_ID = 1000000;
 
+    extern const int UnificationOrder_Element = 1;
+    extern const int UnificationOrder_Id = 2;
+    extern const int UnificationOrder_Class = 2;
+    extern const int UnificationOrder_Attribute = 3;
+    extern const int UnificationOrder_PseudoClass = 4;
+    extern const int UnificationOrder_Wrapped = 5;
+    extern const int UnificationOrder_PseudoElement = 6;
+    extern const int UnificationOrder_Placeholder = 7;
+
     // sass keywords
     extern const char at_root_kwd[]       = "@at-root";
     extern const char import_kwd[]        = "@import";
@@ -115,6 +124,9 @@ namespace Sass {
     extern const char neq[]       = "!=";
     extern const char true_kwd[]  = "true";
     extern const char false_kwd[] = "false";
+
+    // definition keywords
+    extern const char using_kwd[]   = "using";
 
     // miscellaneous punctuation and delimiters
     extern const char percent_str[]     = "%";
