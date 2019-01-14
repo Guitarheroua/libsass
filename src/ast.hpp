@@ -38,7 +38,7 @@ namespace Sass {
 
   // ToDo: should this really be hardcoded
   // Note: most methods follow precision option
-  const double NUMBER_EPSILON = 0.00000000000001;
+  const double NUMBER_EPSILON = 1e-12;
 
   // macro to test if numbers are equal within a small error margin
   #define NEAR_EQUAL(lhs, rhs) std::fabs(lhs - rhs) < NUMBER_EPSILON
@@ -69,47 +69,9 @@ namespace Sass {
   }
   //////////////////////////////////////////////////////////
 
-  inline static const std::string sass_op_to_name(enum Sass_OP op) {
-    switch (op) {
-      case AND: return "and";
-      case OR: return "or";
-      case EQ: return "eq";
-      case NEQ: return "neq";
-      case GT: return "gt";
-      case GTE: return "gte";
-      case LT: return "lt";
-      case LTE: return "lte";
-      case ADD: return "plus";
-      case SUB: return "sub";
-      case MUL: return "times";
-      case DIV: return "div";
-      case MOD: return "mod";
-      // this is only used internally!
-      case NUM_OPS: return "[OPS]";
-      default: return "invalid";
-    }
-  }
+  const char* sass_op_to_name(enum Sass_OP op);
 
-  inline static const std::string sass_op_separator(enum Sass_OP op) {
-    switch (op) {
-      case AND: return "&&";
-      case OR: return "||";
-      case EQ: return "==";
-      case NEQ: return "!=";
-      case GT: return ">";
-      case GTE: return ">=";
-      case LT: return "<";
-      case LTE: return "<=";
-      case ADD: return "+";
-      case SUB: return "-";
-      case MUL: return "*";
-      case DIV: return "/";
-      case MOD: return "%";
-      // this is only used internally!
-      case NUM_OPS: return "[OPS]";
-      default: return "invalid";
-    }
-  }
+  const char* sass_op_separator(enum Sass_OP op);
 
   //////////////////////////////////////////////////////////
   // Abstract base class for all abstract syntax tree nodes.
@@ -198,21 +160,7 @@ namespace Sass {
     ADD_PROPERTY(bool, is_interpolant)
     ADD_PROPERTY(Type, concrete_type)
   public:
-    Expression(ParserState pstate,
-               bool d = false, bool e = false, bool i = false, Type ct = NONE)
-    : AST_Node(pstate),
-      is_delayed_(d),
-      is_expanded_(e),
-      is_interpolant_(i),
-      concrete_type_(ct)
-    { }
-    Expression(const Expression* ptr)
-    : AST_Node(ptr),
-      is_delayed_(ptr->is_delayed_),
-      is_expanded_(ptr->is_expanded_),
-      is_interpolant_(ptr->is_interpolant_),
-      concrete_type_(ptr->concrete_type_)
-    { }
+    Expression(ParserState pstate, bool d = false, bool e = false, bool i = false, Type ct = NONE);
     virtual operator bool() { return true; }
     virtual ~Expression() { }
     virtual bool is_invisible() const { return false; }
@@ -441,7 +389,6 @@ namespace Sass {
     ADD_PROPERTY(bool, group_end)
   public:
     Statement(ParserState pstate, Type st = NONE, size_t t = 0);
-    Statement(const Statement* ptr); // copy constructor
     virtual ~Statement() = 0; // virtual destructor
     // needed for rearranging nested rulesets during CSS emission
     virtual bool bubbles();

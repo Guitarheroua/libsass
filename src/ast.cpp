@@ -19,6 +19,48 @@ namespace Sass {
 
   static Null sass_null(ParserState("null"));
 
+  const char* sass_op_to_name(enum Sass_OP op) {
+    switch (op) {
+      case AND: return "and";
+      case OR: return "or";
+      case EQ: return "eq";
+      case NEQ: return "neq";
+      case GT: return "gt";
+      case GTE: return "gte";
+      case LT: return "lt";
+      case LTE: return "lte";
+      case ADD: return "plus";
+      case SUB: return "minus";
+      case MUL: return "times";
+      case DIV: return "div";
+      case MOD: return "mod";
+      // this is only used internally!
+      case NUM_OPS: return "[OPS]";
+      default: return "invalid";
+    }
+  }
+
+  const char* sass_op_separator(enum Sass_OP op) {
+    switch (op) {
+      case AND: return "&&";
+      case OR: return "||";
+      case EQ: return "==";
+      case NEQ: return "!=";
+      case GT: return ">";
+      case GTE: return ">=";
+      case LT: return "<";
+      case LTE: return "<=";
+      case ADD: return "+";
+      case SUB: return "-";
+      case MUL: return "*";
+      case DIV: return "/";
+      case MOD: return "%";
+      // this is only used internally!
+      case NUM_OPS: return "[OPS]";
+      default: return "invalid";
+    }
+  }
+
   /////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////
 
@@ -80,7 +122,7 @@ namespace Sass {
   {
     return false;
   }
-  
+
   /////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////
 
@@ -507,6 +549,25 @@ namespace Sass {
   : Statement(ptr),
     arguments_(ptr->arguments_)
   { statement_type(CONTENT); }
+
+  /////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////
+
+  Expression::Expression(ParserState pstate, bool d, bool e, bool i, Type ct)
+  : AST_Node(pstate),
+    is_delayed_(d),
+    is_expanded_(e),
+    is_interpolant_(i),
+    concrete_type_(ct)
+  { }
+
+  Expression::Expression(const Expression* ptr)
+  : AST_Node(ptr),
+    is_delayed_(ptr->is_delayed_),
+    is_expanded_(ptr->is_expanded_),
+    is_interpolant_(ptr->is_interpolant_),
+    concrete_type_(ptr->concrete_type_)
+  { }
 
   /////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////
