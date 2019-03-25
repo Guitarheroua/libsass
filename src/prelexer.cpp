@@ -1,4 +1,7 @@
+// sass.hpp must go before all system headers to get the
+// __EXTENSIONS__ fix on Solaris.
 #include "sass.hpp"
+
 #include <cctype>
 #include <iostream>
 #include <iomanip>
@@ -260,7 +263,7 @@ namespace Sass {
       >(src);
     }
 
-    // Match a line comment (/.*?(?=\n|\r\n?|\Z)/.
+    // Match a line comment (/.*?(?=\n|\r\n?|\f|\Z)/.
     const char* line_comment(const char* src)
     {
       return sequence<
