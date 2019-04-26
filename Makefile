@@ -28,14 +28,20 @@ CAT ?= $(if $(filter $(OS),Windows_NT),type,cat)
 
 ifneq (,$(findstring /cygdrive/,$(PATH)))
 	UNAME := Cygwin
-else ifneq (,$(findstring Windows_NT,$(OS)))
+else
+ifneq (,$(findstring Windows_NT,$(OS)))
 	UNAME := Windows
-else ifneq (,$(findstring mingw32,$(MAKE)))
+else
+ifneq (,$(findstring mingw32,$(MAKE)))
 	UNAME := Windows
-else ifneq (,$(findstring MINGW32,$(shell uname -s)))
+else
+ifneq (,$(findstring MINGW32,$(shell uname -s)))
 	UNAME := Windows
 else
 	UNAME := $(shell uname -s)
+endif
+endif
+endif
 endif
 
 ifndef LIBSASS_VERSION
@@ -153,10 +159,12 @@ ifeq (Windows,$(UNAME))
 		CXXFLAGS  += -D ADD_EXPORTS
 		LIB_SHARED  = $(SASS_LIBSASS_PATH)/lib/libsass.dll
 	endif
-else ifneq (Cygwin,$(UNAME))
+else
+ifneq (Cygwin,$(UNAME))
 	CFLAGS   += -fPIC
 	CXXFLAGS += -fPIC
 	LDFLAGS  += -fPIC
+endif
 endif
 
 include Makefile.conf
@@ -268,13 +276,13 @@ version: $(SASSC_BIN)
 test: test_build
 
 test_build: $(SASSC_BIN)
-	$(RUBY_BIN) $(SASS_SPEC_PATH)/sass-spec.rb -V 3.5 -c $(SASSC_BIN) --impl libsass $(LOG_FLAGS) $(SASS_SPEC_PATH)/$(SASS_SPEC_SPEC_DIR)
+	$(RUBY_BIN) $(SASS_SPEC_PATH)/sass-spec.rb -c $(SASSC_BIN) --impl libsass $(LOG_FLAGS) $(SASS_SPEC_PATH)/$(SASS_SPEC_SPEC_DIR)
 
 test_full: $(SASSC_BIN)
-	$(RUBY_BIN) $(SASS_SPEC_PATH)/sass-spec.rb -V 3.5 -c $(SASSC_BIN) --impl libsass --run-todo $(LOG_FLAGS) $(SASS_SPEC_PATH)/$(SASS_SPEC_SPEC_DIR)
+	$(RUBY_BIN) $(SASS_SPEC_PATH)/sass-spec.rb -c $(SASSC_BIN) --impl libsass --run-todo $(LOG_FLAGS) $(SASS_SPEC_PATH)/$(SASS_SPEC_SPEC_DIR)
 
 test_probe: $(SASSC_BIN)
-	$(RUBY_BIN) $(SASS_SPEC_PATH)/sass-spec.rb -V 3.5 -c $(SASSC_BIN) --impl libsass --probe-todo $(LOG_FLAGS) $(SASS_SPEC_PATH)/$(SASS_SPEC_SPEC_DIR)
+	$(RUBY_BIN) $(SASS_SPEC_PATH)/sass-spec.rb -c $(SASSC_BIN) --impl libsass --probe-todo $(LOG_FLAGS) $(SASS_SPEC_PATH)/$(SASS_SPEC_SPEC_DIR)
 
 clean-objects: | lib
 	-$(RM) lib/*.a lib/*.so lib/*.dll lib/*.la
@@ -303,5 +311,6 @@ lib-opts-shared:
         debug debug-static debug-shared \
         install install-static install-shared \
         lib-opts lib-opts-shared lib-opts-static \
-        lib-file lib-file-shared lib-file-static
+        lib-file lib-file-shared lib-file-static \
+        test test_build test_full test_probe
 .DELETE_ON_ERROR:

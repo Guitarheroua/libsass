@@ -65,19 +65,13 @@ namespace Sass {
     Signature quote_sig = "quote($string)";
     BUILT_IN(sass_quote)
     {
-      AST_Node_Obj arg = env["$string"];
-      // only set quote mark to true if already a string
-      if (String_Quoted* qstr = Cast<String_Quoted>(arg)) {
-        qstr->quote_mark('*');
-        return qstr;
-      }
-      // all other nodes must be converted to a string node
-      std::string str(quote(arg->to_string(ctx.c_options), '"'));
-      String_Quoted* result = SASS_MEMORY_NEW(String_Quoted, pstate, str);
+      const String_Constant* s = ARG("$string", String_Constant);
+      String_Quoted *result = SASS_MEMORY_NEW(
+          String_Quoted, pstate, s->value(),
+          /*q=*/'\0', /*keep_utf8_escapes=*/false, /*skip_unquoting=*/true);
       result->quote_mark('*');
       return result;
     }
-
 
     Signature str_length_sig = "str-length($string)";
     BUILT_IN(str_length)
@@ -102,10 +96,8 @@ namespace Sass {
       try {
         String_Constant* s = ARG("$string", String_Constant);
         str = s->value();
-        str = unquote(str);
         String_Constant* i = ARG("$insert", String_Constant);
         std::string ins = i->value();
-        ins = unquote(ins);
         double index = ARGVAL("$index");
         size_t len = UTF_8::code_point_count(str, 0, str.size());
 
@@ -148,9 +140,7 @@ namespace Sass {
         String_Constant* s = ARG("$string", String_Constant);
         String_Constant* t = ARG("$substring", String_Constant);
         std::string str = s->value();
-        str = unquote(str);
         std::string substr = t->value();
-        substr = unquote(substr);
 
         size_t c_index = str.find(substr);
         if(c_index == std::string::npos) {
@@ -175,7 +165,7 @@ namespace Sass {
         double end_at = ARGVAL("$end-at");
         String_Quoted* ss = Cast<String_Quoted>(s);
 
-        std::string str = unquote(s->value());
+        std::string str(s->value());
 
         size_t size = utf8::distance(str.begin(), str.end());
 
