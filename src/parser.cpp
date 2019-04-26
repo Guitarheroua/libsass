@@ -1826,63 +1826,71 @@ namespace Sass {
     return schema.detach();
   }
 
-  String_Schema_Obj Parser::parse_css_variable_value()
+  String_Schema_Obj Parser::parse_css_variable_value(bool top_level)
   {
     String_Schema_Obj schema = SASS_MEMORY_NEW(String_Schema, pstate);
-    std::vector<char> brackets;
-    while (true) {
-      if (
-        (brackets.empty() && lex< css_variable_top_level_value >(false)) ||
-        (!brackets.empty() && lex< css_variable_value >(false))
-      ) {
-        Token str(lexed);
-        schema->append(SASS_MEMORY_NEW(String_Constant, pstate, str));
-      } else if (Expression_Obj tok = lex_interpolation()) {
-        if (String_Schema* s = Cast<String_Schema>(tok)) {
-          if (s->empty()) break;
-          schema->concat(s);
-        } else {
-          schema->append(tok);
-        }
-      } else if (lex< quoted_string >()) {
-        Expression_Obj tok = parse_string();
-        if (tok.isNull()) break;
-        if (String_Schema* s = Cast<String_Schema>(tok)) {
-          if (s->empty()) break;
-          schema->concat(s);
-        } else {
-          schema->append(tok);
-        }
-      } else if (lex< alternatives< exactly<'('>, exactly<'['>, exactly<'{'> > >()) {
-        const char opening_bracket = *(position - 1);
-        brackets.push_back(opening_bracket);
-        schema->append(SASS_MEMORY_NEW(String_Constant, pstate, std::string(1, opening_bracket)));
-      } else if (const char *match = peek< alternatives< exactly<')'>, exactly<']'>, exactly<'}'> > >()) {
-        if (brackets.empty()) break;
-        const char closing_bracket = *(match - 1);
-        if (brackets.back() != Util::opening_bracket_for(closing_bracket)) {
-          std::string message = ": expected \"";
-          message += Util::closing_bracket_for(brackets.back());
-          message += "\", was ";
-          css_error("Invalid CSS", " after ", message);
-        }
-        lex< alternatives< exactly<')'>, exactly<']'>, exactly<'}'> > >();
-        schema->append(SASS_MEMORY_NEW(String_Constant, pstate, std::string(1, closing_bracket)));
-        brackets.pop_back();
+    String_Schema_Obj tok;
+    if (!(tok = parse_css_variable_value_token(top_level))) {
+      return {};
+    }
+
+    schema->concat(tok);
+    while ((tok = parse_css_variable_value_token(top_level))) {
+      schema->concat(tok);
+    }
+
+    return schema.detach();
+  }
+
+  String_Schema_Obj Parser::parse_css_variable_value_token(bool top_level)
+  {
+    String_Schema_Obj schema = SASS_MEMORY_NEW(String_Schema, pstate);
+    if (
+      (top_level && lex< css_variable_top_level_value >(false)) ||
+      (!top_level && lex< css_variable_value >(false))
+    ) {
+      Token str(lexed);
+      schema->append(SASS_MEMORY_NEW(String_Constant, pstate, str));
+    }
+    else if (Expression_Obj tok = lex_interpolation()) {
+      if (String_Schema* s = Cast<String_Schema>(tok)) {
+        schema->concat(s);
       } else {
-        break;
+        schema->append(tok);
+      }
+    }
+    else if (lex< quoted_string >()) {
+      Expression_Obj tok = parse_string();
+      if (String_Schema* s = Cast<String_Schema>(tok)) {
+        schema->concat(s);
+      } else {
+        schema->append(tok);
+      }
+    }
+    else {
+      if (peek< alternatives< exactly<'('>, exactly<'['>, exactly<'{'> > >()) {
+        if (lex< exactly<'('> >()) {
+          schema->append(SASS_MEMORY_NEW(String_Constant, pstate, std::string("(")));
+          if (String_Schema_Obj tok = parse_css_variable_value(false)) schema->concat(tok);
+          if (!lex< exactly<')'> >()) css_error("Invalid CSS", " after ", ": expected \")\", was ");
+          schema->append(SASS_MEMORY_NEW(String_Constant, pstate, std::string(")")));
+        }
+        else if (lex< exactly<'['> >()) {
+          schema->append(SASS_MEMORY_NEW(String_Constant, pstate, std::string("[")));
+          if (String_Schema_Obj tok = parse_css_variable_value(false)) schema->concat(tok);
+          if (!lex< exactly<']'> >()) css_error("Invalid CSS", " after ", ": expected \"]\", was ");
+          schema->append(SASS_MEMORY_NEW(String_Constant, pstate, std::string("]")));
+        }
+        else if (lex< exactly<'{'> >()) {
+          schema->append(SASS_MEMORY_NEW(String_Constant, pstate, std::string("{")));
+          if (String_Schema_Obj tok = parse_css_variable_value(false)) schema->concat(tok);
+          if (!lex< exactly<'}'> >()) css_error("Invalid CSS", " after ", ": expected \"}\", was ");
+          schema->append(SASS_MEMORY_NEW(String_Constant, pstate, std::string("}")));
+        }
       }
     }
 
-    if (!brackets.empty()) {
-      std::string message = ": expected \"";
-      message += Util::closing_bracket_for(brackets.back());
-      message += "\", was ";
-      css_error("Invalid CSS", " after ", message);
-    }
-
-    if (schema->empty()) error("Custom property values may not be empty.");
-    return schema.detach();
+    return schema->length() > 0 ? schema.detach() : NULL;
   }
 
   Value_Obj Parser::parse_static_value()
@@ -2429,7 +2437,10 @@ namespace Sass {
   // these are very similar to media blocks
   Supports_Block_Obj Parser::parse_supports_directive()
   {
-    Supports_Condition_Obj cond = parse_supports_condition(/*top_level=*/true);
+    Supports_Condition_Obj cond = parse_supports_condition();
+    if (!cond) {
+      css_error("Invalid CSS", " after ", ": expected @supports condition (e.g. (display: flexbox)), was ", false);
+    }
     // create the ast node object for the support queries
     Supports_Block_Obj query = SASS_MEMORY_NEW(Supports_Block, pstate, cond);
     // additional block is mandatory
@@ -2441,12 +2452,12 @@ namespace Sass {
 
   // parse one query operation
   // may encounter nested queries
-  Supports_Condition_Obj Parser::parse_supports_condition(bool top_level)
+  Supports_Condition_Obj Parser::parse_supports_condition()
   {
     lex < css_whitespace >();
     Supports_Condition_Obj cond;
     if ((cond = parse_supports_negation())) return cond;
-    if ((cond = parse_supports_operator(top_level))) return cond;
+    if ((cond = parse_supports_operator())) return cond;
     if ((cond = parse_supports_interpolation())) return cond;
     return cond;
   }
@@ -2454,13 +2465,13 @@ namespace Sass {
   Supports_Condition_Obj Parser::parse_supports_negation()
   {
     if (!lex < kwd_not >()) return {};
-    Supports_Condition_Obj cond = parse_supports_condition_in_parens(/*parens_required=*/true);
+    Supports_Condition_Obj cond = parse_supports_condition_in_parens();
     return SASS_MEMORY_NEW(Supports_Negation, pstate, cond);
   }
 
-  Supports_Condition_Obj Parser::parse_supports_operator(bool top_level)
+  Supports_Condition_Obj Parser::parse_supports_operator()
   {
-    Supports_Condition_Obj cond = parse_supports_condition_in_parens(/*parens_required=*/top_level);
+    Supports_Condition_Obj cond = parse_supports_condition_in_parens();
     if (cond.isNull()) return {};
 
     while (true) {
@@ -2469,7 +2480,7 @@ namespace Sass {
       else if(!lex < kwd_or >()) { break; }
 
       lex < css_whitespace >();
-      Supports_Condition_Obj right = parse_supports_condition_in_parens(/*parens_required=*/true);
+      Supports_Condition_Obj right = parse_supports_condition_in_parens();
 
       // Supports_Condition* cc = SASS_MEMORY_NEW(Supports_Condition, *static_cast<Supports_Condition*>(cond));
       cond = SASS_MEMORY_NEW(Supports_Operator, pstate, cond, right, op);
@@ -2507,24 +2518,21 @@ namespace Sass {
     return cond;
   }
 
-  Supports_Condition_Obj Parser::parse_supports_condition_in_parens(bool parens_required)
+  Supports_Condition_Obj Parser::parse_supports_condition_in_parens()
   {
     Supports_Condition_Obj interp = parse_supports_interpolation();
     if (interp != 0) return interp;
 
-    if (!lex < exactly <'('> >()) {
-      if (parens_required) {
-        css_error("Invalid CSS", " after ", ": expected @supports condition (e.g. (display: flexbox)), was ", /*trim=*/false);
-      } else {
-        return {};
-      }
-    }
+    if (!lex < exactly <'('> >()) return {};
     lex < css_whitespace >();
 
-    Supports_Condition_Obj cond = parse_supports_condition(/*top_level=*/false);
-    if (cond.isNull()) cond = parse_supports_declaration();
-    if (!lex < exactly <')'> >()) error("unclosed parenthesis in @supports declaration");
-
+    Supports_Condition_Obj cond = parse_supports_condition();
+    if (cond != 0) {
+      if (!lex < exactly <')'> >()) error("unclosed parenthesis in @supports declaration");
+    } else {
+      cond = parse_supports_declaration();
+      if (!lex < exactly <')'> >()) error("unclosed parenthesis in @supports declaration");
+    }
     lex < css_whitespace >();
     return cond;
   }

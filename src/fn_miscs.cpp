@@ -186,16 +186,11 @@ namespace Sass {
     {
       Expression* v = ARG("$value", Expression);
       if (v->concrete_type() == Expression::NULL_VAL) {
-        return SASS_MEMORY_NEW(String_Constant, pstate, "null");
+        return SASS_MEMORY_NEW(String_Quoted, pstate, "null");
       } else if (v->concrete_type() == Expression::BOOLEAN && v->is_false()) {
-        return SASS_MEMORY_NEW(String_Constant, pstate, "false");
+        return SASS_MEMORY_NEW(String_Quoted, pstate, "false");
       } else if (v->concrete_type() == Expression::STRING) {
-        String_Constant *s = Cast<String_Constant>(v);
-        if (s->quote_mark()) {
-          return SASS_MEMORY_NEW(String_Constant, pstate, quote(s->value(), s->quote_mark()));
-        } else {
-          return s;
-        }
+        return Cast<String>(v);
       } else {
         // ToDo: fix to_sass for nested parentheses
         Sass_Output_Style old_style;

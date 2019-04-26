@@ -253,13 +253,7 @@ namespace Sass {
     if (value) value = value->perform(&eval);
     Block_Obj bb = ab ? operator()(ab) : NULL;
     if (!bb) {
-      if (!value || (value->is_invisible() && !d->is_important())) {
-        if (d->is_custom_property()) {
-          error("Custom property values may not be empty.", d->value()->pstate(), traces);
-        } else {
-          return nullptr;
-        }
-      }
+      if (!value || (value->is_invisible() && !d->is_important())) return 0;
     }
     Declaration* decl = SASS_MEMORY_NEW(Declaration,
                                         d->pstate(),

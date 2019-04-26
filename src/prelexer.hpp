@@ -65,15 +65,16 @@ namespace Sass {
       size_t level = 0;
       bool in_squote = false;
       bool in_dquote = false;
-      bool in_backslash_escape = false;
+      // bool in_braces = false;
 
-      while ((end == nullptr || src < end) && *src != '\0') {
+      while (*src) {
+
+        // check for abort condition
+        if (end && src >= end) break;
+
         // has escaped sequence?
-        if (in_backslash_escape) {
-          in_backslash_escape = false;
-        }
-        else if (*src == '\\') {
-          in_backslash_escape = true;
+        if (*src == '\\') {
+          ++ src; // skip this (and next)
         }
         else if (*src == '"') {
           in_dquote = ! in_dquote;
@@ -119,7 +120,7 @@ namespace Sass {
     // first start/opener must be consumed already!
     template<prelexer start, prelexer stop>
     const char* skip_over_scopes(const char* src) {
-      return skip_over_scopes<start, stop>(src, nullptr);
+      return skip_over_scopes<start, stop>(src, 0);
     }
 
     // Match a sequence of characters delimited by the supplied chars.

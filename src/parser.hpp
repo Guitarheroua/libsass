@@ -295,7 +295,8 @@ namespace Sass {
     String_Obj parse_interpolated_chunk(Token, bool constant = false, bool css = true);
     String_Obj parse_string();
     Value_Obj parse_static_value();
-    String_Schema_Obj parse_css_variable_value();
+    String_Schema_Obj parse_css_variable_value(bool top_level = true);
+    String_Schema_Obj parse_css_variable_value_token(bool top_level = true);
     String_Obj parse_ie_property();
     String_Obj parse_ie_keyword_arg();
     String_Schema_Obj parse_value_schema(const char* stop);
@@ -312,12 +313,12 @@ namespace Sass {
     Media_Query_Obj parse_media_query();
     Media_Query_Expression_Obj parse_media_expression();
     Supports_Block_Obj parse_supports_directive();
-    Supports_Condition_Obj parse_supports_condition(bool top_level);
+    Supports_Condition_Obj parse_supports_condition();
     Supports_Condition_Obj parse_supports_negation();
-    Supports_Condition_Obj parse_supports_operator(bool top_level);
+    Supports_Condition_Obj parse_supports_operator();
     Supports_Condition_Obj parse_supports_interpolation();
     Supports_Condition_Obj parse_supports_declaration();
-    Supports_Condition_Obj parse_supports_condition_in_parens(bool parens_required);
+    Supports_Condition_Obj parse_supports_condition_in_parens();
     At_Root_Block_Obj parse_at_root_block();
     At_Root_Query_Obj parse_at_root_query();
     String_Schema_Obj parse_almost_any_value();
