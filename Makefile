@@ -68,7 +68,7 @@ else
 endif
 
 ifndef SASS_LIBSASS_PATH
-	SASS_LIBSASS_PATH = $(abspath $(CURDIR))
+	SASS_LIBSASS_PATH = $(CURDIR)
 endif
 ifdef SASS_LIBSASS_PATH
 	CFLAGS   += -I $(SASS_LIBSASS_PATH)/include
@@ -85,7 +85,9 @@ LDFLAGS  += $(EXTRA_LDFLAGS)
 
 LDLIBS = -lm
 ifneq ($(BUILD),shared)
-	LDLIBS += -lstdc++
+	ifneq ($(STATIC_LIBSTDCPP),1)
+		LDLIBS += -lstdc++
+	endif
 endif
 
 # link statically into lib
