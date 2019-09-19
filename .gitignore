@@ -1,6 +1,5 @@
 # Miscellaneous stuff
 
-/sassc
 /sass-spec
 /plugins/
 
@@ -80,7 +79,6 @@ libsass.la
 src/support/libsass.pc
 
 # Cloned testing dirs
-sassc/
 sass-spec/
 
 installer/
