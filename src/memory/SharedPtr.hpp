@@ -3,9 +3,15 @@
 
 #include "sass/base.h"
 
+#include <cstddef>
 #include <iostream>
 #include <string>
+#include <type_traits>
 #include <vector>
+
+// https://lokiastari.com/blog/2014/12/30/c-plus-plus-by-example-smart-pointer/index.html
+// https://lokiastari.com/blog/2015/01/15/c-plus-plus-by-example-smart-pointer-part-ii/index.html
+// https://lokiastari.com/blog/2015/01/23/c-plus-plus-by-example-smart-pointer-part-iii/index.html
 
 namespace Sass {
 
@@ -40,6 +46,16 @@ namespace Sass {
 
   #endif
 
+  // SharedObj is the base class for all objects that can be stored as a shared object
+  // It adds the reference counter and other values directly to the objects
+  // This gives a slight overhead when directly used as a stack object, but has some
+  // advantages for our code. It is safe to create two shared pointers from the same
+  // objects, as the "control block" is directly attached to it. This would lead
+  // to undefined behavior with std::shared_ptr. This also avoids the need to
+  // allocate additional control blocks and/or the need to dereference two
+  // pointers on each operation. This can be optimized in `std::shared_ptr`
+  // too by using `std::make_shared` (where the control block and the actual
+  // object are allocated in one continous memory block via one single call).
   class SharedObj {
    public:
     SharedObj() : refcount(0), detached(false) {
@@ -49,7 +65,12 @@ namespace Sass {
     }
     virtual ~SharedObj() {
       #ifdef DEBUG_SHARED_PTR
-      all.clear();
+      for (size_t i = 0; i < all.size(); i++) {
+        if (all[i] == this) {
+          all.erase(all.begin() + i);
+          break;
+        }
+      }
       #endif
     }
 
@@ -68,7 +89,7 @@ namespace Sass {
 
     static void setTaint(bool val) { taint = val; }
 
-    virtual const std::string to_string() const = 0;
+    virtual std::string to_string() const = 0;
    protected:
     friend class SharedPtr;
     friend class Memory_Manager;
@@ -83,6 +104,9 @@ namespace Sass {
     #endif
   };
 
+  // SharedPtr is a intermediate (template-less) base class for SharedImpl.
+  // ToDo: there should be a way to include this in SharedImpl and to get
+  // ToDo: rid of all the static_cast that are now needed in SharedImpl.
   class SharedPtr {
    public:
     SharedPtr() : node(nullptr) {}
@@ -112,6 +136,11 @@ namespace Sass {
     // Prevents all SharedPtrs from freeing this node until it is assigned to another SharedPtr.
     SharedObj* detach() {
       if (node != nullptr) node->detached = true;
+      #ifdef DEBUG_SHARED_PTR
+      if (node->dbg) {
+        std::cerr << "DETACHING NODE\n";
+      }
+      #endif 
       return node;
     }
 
@@ -134,6 +163,11 @@ namespace Sass {
         #endif
         delete node;
       }
+      else if (node->refcount == 0) {
+        #ifdef DEBUG_SHARED_PTR
+        if (node->dbg) std::cerr << "NODE EVAEDED DELETE " << node << "\n";
+        #endif
+      }
     }
     void incRefCount() {
       if (node == nullptr) return;
@@ -147,7 +181,8 @@ namespace Sass {
 
   template <class T>
   class SharedImpl : private SharedPtr {
-   public:
+
+  public:
     SharedImpl() : SharedPtr(nullptr) {}
 
     template <class U>
@@ -170,9 +205,9 @@ namespace Sass {
         SharedPtr::operator=(static_cast<const SharedImpl<T>&>(rhs)));
     }
 
-    operator const std::string() const {
+    operator std::string() const {
       if (node) return node->to_string();
-      return "[nullptr]";
+      return "null";
     }
 
     using SharedPtr::isNull;
@@ -183,8 +218,103 @@ namespace Sass {
     T* operator-> () const { return static_cast<T*>(this->obj()); };
     T* ptr () const { return static_cast<T*>(this->obj()); };
     T* detach() { return static_cast<T*>(SharedPtr::detach()); }
+
   };
 
-}
+  // Comparison operators, based on:
+  // https://en.cppreference.com/w/cpp/memory/unique_ptr/operator_cmp
+
+  template<class T1, class T2>
+  bool operator==(const SharedImpl<T1>& x, const SharedImpl<T2>& y) {
+    return x.ptr() == y.ptr();
+  }
+
+  template<class T1, class T2>
+  bool operator!=(const SharedImpl<T1>& x, const SharedImpl<T2>& y) {
+    return x.ptr() != y.ptr();
+  }
+
+  template<class T1, class T2>
+  bool operator<(const SharedImpl<T1>& x, const SharedImpl<T2>& y) {
+    using CT = typename std::common_type<T1*, T2*>::type;
+    return std::less<CT>()(x.get(), y.get());
+  }
+
+  template<class T1, class T2>
+  bool operator<=(const SharedImpl<T1>& x, const SharedImpl<T2>& y) {
+    return !(y < x);
+  }
+
+  template<class T1, class T2>
+  bool operator>(const SharedImpl<T1>& x, const SharedImpl<T2>& y) {
+    return y < x;
+  }
+
+  template<class T1, class T2>
+  bool operator>=(const SharedImpl<T1>& x, const SharedImpl<T2>& y) {
+    return !(x < y);
+  }
+
+  template <class T>
+  bool operator==(const SharedImpl<T>& x, std::nullptr_t) noexcept {
+    return x.isNull();
+  }
+
+  template <class T>
+  bool operator==(std::nullptr_t, const SharedImpl<T>& x) noexcept {
+    return x.isNull();
+  }
+
+  template <class T>
+  bool operator!=(const SharedImpl<T>& x, std::nullptr_t) noexcept {
+    return !x.isNull();
+  }
+
+  template <class T>
+  bool operator!=(std::nullptr_t, const SharedImpl<T>& x) noexcept {
+    return !x.isNull();
+  }
+
+  template <class T>
+  bool operator<(const SharedImpl<T>& x, std::nullptr_t) {
+    return std::less<T*>()(x.get(), nullptr);
+  }
+
+  template <class T>
+  bool operator<(std::nullptr_t, const SharedImpl<T>& y) {
+    return std::less<T*>()(nullptr, y.get());
+  }
+
+  template <class T>
+  bool operator<=(const SharedImpl<T>& x, std::nullptr_t) {
+    return !(nullptr < x);
+  }
+
+  template <class T>
+  bool operator<=(std::nullptr_t, const SharedImpl<T>& y) {
+    return !(y < nullptr);
+  }
+
+  template <class T>
+  bool operator>(const SharedImpl<T>& x, std::nullptr_t) {
+    return nullptr < x;
+  }
+
+  template <class T>
+  bool operator>(std::nullptr_t, const SharedImpl<T>& y) {
+    return y < nullptr;
+  }
+
+  template <class T>
+  bool operator>=(const SharedImpl<T>& x, std::nullptr_t) {
+    return !(x < nullptr);
+  }
+
+  template <class T>
+  bool operator>=(std::nullptr_t, const SharedImpl<T>& y) {
+    return !(nullptr < y);
+  }
+
+}  // namespace Sass
 
 #endif
